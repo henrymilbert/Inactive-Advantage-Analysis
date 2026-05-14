@@ -24,6 +24,8 @@ PRINT_DIFF_VERSUS_POINTS_TABLE: bool = False
 # Set to true to print the raw data for total points for the first and second inactive alliances, and
 # the difference.
 PRINT_TOTAL_POINTS_RAW_DATA: bool = False
+# Set the tolerance percentage for how close the auto hub counts must be to be included.
+AUTO_HUB_SCORE_TOLERANCE_PERCENT: float = 0.0
 
 configuration = tbaapiv3client.Configuration(
     host="https://www.thebluealliance.com/api/v3",
@@ -203,13 +205,16 @@ if __name__ == "__main__":
                     red_hub_score: dict[str, int] = red_score_breakdown.get("hubScore")
                     blue_hub_score: dict[str, int] = blue_score_breakdown.get("hubScore")
 
-                    # Only look at matches where the auto hub count is the same for both alliances, and
-                    # therefore the first inactive shift was randomly assigned.
-                    if red_hub_score.get("autoCount") != blue_hub_score.get("autoCount"):
+                    # Only look at matches where the auto hub count is the same for both alliances,
+                    # and therefore the first inactive shift was randomly assigned. Setting the
+                    # AUTO_HUB_SCORE_TOLERANCE_PERCENT to a value greater than 0 will allow matches
+                    # where the auto hub counts are close, but not exactly the same, to be included
+                    # as well.
+                    if abs(red_hub_score.get("autoCount") - blue_hub_score.get("autoCount")) > AUTO_HUB_SCORE_TOLERANCE_PERCENT / 100 * max(red_hub_score.get("autoCount"), blue_hub_score.get("autoCount")):
                         continue
 
                     # Only look at matches with an auto hub count above the specified threshold (if set).
-                    if MIN_AUTO_HUB_COUNT is not None and red_hub_score.get("autoCount") < MIN_AUTO_HUB_COUNT:
+                    if MIN_AUTO_HUB_COUNT is not None and min(red_hub_score.get("autoCount"), blue_hub_score.get("autoCount")) < MIN_AUTO_HUB_COUNT:
                         continue
 
                     # Only look at matches with a higher total points above the specified threshold (if set).
